@@ -64,6 +64,14 @@ td.l,th.l{text-align:left}td.c,th.c{text-align:center}
 tr.buy td{background:var(--red-soft)}
 tr.out td{color:var(--sub);text-decoration:line-through}
 .red{color:var(--red);font-weight:bold}.grey{color:var(--sub)}
+/* スマホ幅: 横スクロールなしで期待値・着順まで見せる。買い目の列は省く（行が赤くなるので分かる） */
+@media (max-width:480px){
+  main{padding:8px 8px 60px}
+  table{min-width:0;font-size:13px}
+  th,td{padding:5px 3px}
+  td.l:nth-child(2){max-width:6.5em;overflow:hidden;text-overflow:ellipsis}
+  th:nth-child(7),td:nth-child(7){display:none}
+}
 
 /* 成績表 */
 .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
