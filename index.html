@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>地方競馬 買い目</title>
+<style>
+:root{--bg:#f4f5f7;--card:#fff;--ink:#16181d;--sub:#646b78;--line:#dfe2e8;--navy:#14213d;--red:#d62839;--red-soft:#fdeef0;--ok:#1a7f4b;--chip:#eef0f4}
+@media (prefers-color-scheme:dark){:root{--bg:#0f131c;--card:#1a202c;--ink:#e9ecf2;--sub:#9aa3b2;--line:#2c3545;--navy:#0b1020;--red:#ff5c6c;--red-soft:#3a1c22;--ok:#4cc38a;--chip:#252d3b}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Meiryo","メイリオ","Hiragino Kaku Gothic ProN",sans-serif;font-size:15px;line-height:1.5}
+header{background:var(--navy);color:#fff;padding:12px 16px;display:flex;align-items:center;gap:12px;border-bottom:3px solid var(--red)}
+header h1{margin:0;font-size:18px;flex:1}
+header small{display:block;font-size:12px;font-weight:normal;opacity:.8}
+button{font:inherit;cursor:pointer;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:8px 14px;min-height:40px}
+header button{background:transparent;color:#fff;border-color:rgba(255,255,255,.4)}
+nav{position:sticky;top:0;z-index:5;background:var(--bg);display:flex;gap:6px;padding:10px 16px;overflow-x:auto;border-bottom:1px solid var(--line)}
+nav button{white-space:nowrap;border-radius:20px;padding:6px 16px}
+nav button.on{background:var(--red);color:#fff;border-color:var(--red);font-weight:bold}
+main{padding:8px 16px 60px;max-width:860px;margin:0 auto}
+h2{font-size:15px;margin:22px 0 8px;color:var(--sub);font-weight:bold}
+h2 b{color:var(--ink);font-size:17px;margin-right:8px}
+.note{font-size:12px;color:var(--sub);margin:4px 0 10px}
+.empty{background:var(--card);border:1px dashed var(--line);border-radius:12px;padding:18px;text-align:center;color:var(--sub)}
+
+/* 買い目カード: 投票画面に打ち込む順（場 → レース → 式別 → 馬番 → 金額） */
+.pick{background:var(--card);border:1px solid var(--line);border-left:6px solid var(--red);border-radius:12px;padding:12px 14px;margin:0 0 10px;display:grid;grid-template-columns:auto 1fr auto;gap:6px 14px;align-items:center}
+.pick.done{border-left-color:var(--sub);opacity:.85}
+.pick .where{font-size:20px;font-weight:bold;white-space:nowrap}
+.pick .where small{display:block;font-size:12px;font-weight:normal;color:var(--sub)}
+.pick .what{display:flex;align-items:center;gap:10px;min-width:0}
+.pick .name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pick .name small{display:block;color:var(--sub);font-size:12px}
+.pick .yen{font-size:22px;font-weight:bold;white-space:nowrap;text-align:right}
+.pick .yen small{display:block;font-size:12px;font-weight:normal;color:var(--sub)}
+.pick .act{grid-column:1/-1;display:flex;gap:8px;align-items:center;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:8px}
+.pick .act label{display:flex;align-items:center;gap:6px;font-size:14px}
+.pick .act input[type=checkbox]{width:22px;height:22px}
+.pick .act input[type=number]{font:inherit;width:96px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);text-align:right;min-height:40px}
+.pick .act .sp{flex:1}
+.bet{background:var(--red);color:#fff;border-radius:6px;padding:2px 8px;font-weight:bold;white-space:nowrap}
+.left{color:var(--red);font-weight:bold}
+.hit{color:var(--ok);font-weight:bold}
+
+/* 枠色の馬番 */
+.no{display:inline-flex;align-items:center;justify-content:center;min-width:28px;height:28px;border-radius:6px;font-weight:bold;border:1px solid #888;font-variant-numeric:tabular-nums}
+.no.big{min-width:44px;height:44px;font-size:22px;border-radius:10px}
+.w1{background:#fff;color:#000}.w2{background:#111;color:#fff}.w3{background:#e0282e;color:#fff}.w4{background:#1f6fd0;color:#fff}
+.w5{background:#f5d400;color:#000}.w6{background:#1e9e4a;color:#fff}.w7{background:#f08a1c;color:#000}.w8{background:#f49ac1;color:#000}
+
+/* レース（折りたたみ） */
+details{background:var(--card);border:1px solid var(--line);border-radius:12px;margin:0 0 8px;overflow:hidden}
+summary{list-style:none;cursor:pointer;padding:10px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+summary::-webkit-details-marker{display:none}
+summary .r{font-weight:bold;font-size:16px;white-space:nowrap}
+summary .t{color:var(--sub);font-size:13px;flex:1;min-width:120px}
+.tag{font-size:12px;border-radius:20px;padding:2px 10px;background:var(--chip);color:var(--sub);white-space:nowrap}
+.tag.buy{background:var(--red);color:#fff;font-weight:bold}
+.wrap{overflow-x:auto;border-top:1px solid var(--line)}
+table{border-collapse:collapse;width:100%;min-width:520px}
+th,td{padding:6px 8px;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;border-bottom:1px solid var(--line)}
+th{font-size:12px;color:var(--sub);font-weight:normal;background:var(--chip)}
+td.l,th.l{text-align:left}td.c,th.c{text-align:center}
+tr.buy td{background:var(--red-soft)}
+tr.out td{color:var(--sub);text-decoration:line-through}
+.red{color:var(--red);font-weight:bold}.grey{color:var(--sub)}
+
+/* 成績表 */
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+.tile{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 14px}
+.tile small{display:block;color:var(--sub);font-size:12px}
+.tile b{font-size:20px}
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--navy);color:#fff;padding:8px 18px;border-radius:20px;opacity:0;transition:opacity .2s;pointer-events:none}
+#toast.on{opacity:1}
+</style>
+</head>
+<body>
+<header><h1>地方競馬 買い目<small id="sub"></small></h1><button id="reload">更新</button></header>
+<nav id="nav"></nav>
+<main id="main"></main>
+<div id="toast"></div>
+<script type="module">
+// スマホ版のデータ読み込み（build.py が app.html の /*__DATA__*/ に差し込む。check.py も同じものを Node で試す）
+// 鍵はリンクの #k=… にだけある。GitHub に置くのは暗号文（AES-GCM, 先頭12バイトが iv, 中身は gzip した JSON）だけ。
+const DATA_URL = "https://raw.githubusercontent.com/kazuse429-eng/keiba/data/d.bin";
+const KEY_NAME = "keiba.k";
+
+function b64urlToBytes(s) {
+  s = s.replace(/-/g, "+").replace(/_/g, "/");
+  while (s.length % 4) s += "=";
+  return Uint8Array.from(atob(s), c => c.charCodeAt(0));
+}
+
+async function decryptData(keyText, buf) {
+  const key = await crypto.subtle.importKey("raw", b64urlToBytes(keyText), "AES-GCM", false, ["decrypt"]);
+  const bytes = new Uint8Array(buf);
+  const plain = await crypto.subtle.decrypt({name: "AES-GCM", iv: bytes.slice(0, 12)}, key, bytes.slice(12));
+  const text = await new Response(new Blob([plain]).stream().pipeThrough(new DecompressionStream("gzip"))).text();
+  return JSON.parse(text);
+}
+
+function stopWith(msg) {
+  document.querySelector("#main").innerHTML = `<div class="empty" style="margin-top:24px">${msg}</div>`;
+  throw new Error(msg);
+}
+
+async function loadData() {
+  const m = /[#&]k=([A-Za-z0-9_-]{43})/.exec(location.hash);
+  if (m) {                                   // 鍵を覚えて、アドレス欄からは消す
+    localStorage.setItem(KEY_NAME, m[1]);
+    history.replaceState(null, "", location.pathname + location.search);
+  }
+  const k = localStorage.getItem(KEY_NAME);
+  if (!k) stopWith("このページは、送られたリンクから開いてね。");
+  let res;
+  try {
+    res = await fetch(DATA_URL + "?t=" + Date.now(), {cache: "no-store"});
+  } catch (e) {
+    stopWith("データを取りに行けない（電波を確認してね）。");
+  }
+  if (!res.ok) stopWith("データがまだ無い（" + res.status + "）。");
+  try {
+    return await decryptData(k, await res.arrayBuffer());
+  } catch (e) {
+    stopWith("鍵が合わない。新しいリンクから開き直してね。");
+  }
+}
+
+const DATA = await loadData();
+const $ = s => document.querySelector(s);
+const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const f1 = v => v == null ? "-" : v.toFixed(1);
+const pct = v => v == null ? "-" : (v * 100).toFixed(1) + "%";
+const yen = v => v == null ? "-" : Math.round(v).toLocaleString("ja-JP") + "円";
+const BET = {win: "単勝", place: "複勝"};
+const no = (n, w, big) => `<span class="no w${w || 1}${big ? " big" : ""}">${n}</span>`;
+
+// 自分で買った記録（このPCのブラウザの中だけに残る）
+const KEY = "keiba-bought-" + DATA.date;
+let bought = {};
+try { bought = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch (e) {}
+const saveBought = () => { try { localStorage.setItem(KEY, JSON.stringify(bought)); } catch (e) {} };
+
+function minsLeft(post) {
+  if (!post) return null;
+  const [h, m] = post.split(":").map(Number), d = new Date();
+  return h * 60 + m - (d.getHours() * 60 + d.getMinutes());
+}
+function payout(r, bet, n) {               // 100円あたりの払戻。外れは0
+  const p = r.pays.find(p => p.bet === BET[bet] && p.combo === String(n));
+  return p ? p.yen : 0;
+}
+function allPicks() {
+  const out = [];
+  DATA.venues.forEach(v => v.races.forEach(r => r.runners.forEach(x => {
+    if (x.pick) out.push({v, r, x, id: r.id + "-" + x.pick.bet + "-" + x.n});
+  })));
+  return out.sort((a, b) => (a.r.post || "").padStart(5, "0").localeCompare((b.r.post || "").padStart(5, "0")));
+}
+
+function pickCard(p) {
+  const {v, r, x} = p, left = minsLeft(r.post), mine = bought[p.id];
+  let when = `${esc(r.post || "")}発走`;
+  if (r.done) when += "　確定";
+  else if (left != null && left > 0) when += `　<span class="left">あと${left}分</span>`;
+  else when += "　締切";
+  let res = "";
+  if (r.done) {
+    const pay = payout(r, x.pick.bet, x.n);
+    res = pay ? `<span class="hit">的中 ${yen(pay)}／100円</span>` : `<span class="grey">不的中（${esc(x.pos || "-")}着）</span>`;
+    if (mine) res += `　自分: ${yen(mine)} → <b>${yen(mine * pay / 100)}</b>`;
+  }
+  return `<div class="pick${r.done ? " done" : ""}">
+    <div class="where">${esc(v.venue)} ${r.rno}R<small>${when}</small></div>
+    <div class="what"><span class="bet">${BET[x.pick.bet]}</span>${no(x.n, x.w, true)}
+      <div class="name">${esc(x.name)}<small>${f1(x.pick.odds)}倍〜　期待値 ${x.pick.ev.toFixed(2)}</small></div></div>
+    <div class="yen">${yen(x.pick.stake)}<small>目安</small></div>
+    <div class="act">${r.done ? res : `
+      <label><input type="checkbox" data-buy="${p.id}" ${mine ? "checked" : ""}>買った</label>
+      <input type="number" inputmode="numeric" step="100" min="0" data-amt="${p.id}" value="${mine || x.pick.stake}" aria-label="買った金額">円
+      <span class="sp"></span>
+      <button data-copy="${esc(v.venue)} ${r.rno}R ${BET[x.pick.bet]} ${x.n}番 ${x.pick.stake}円">コピー</button>`}</div></div>`;
+}
+
+function raceBox(v, r, withVenue) {
+  const buys = r.runners.filter(x => x.pick), left = minsLeft(r.post);
+  let tag;
+  if (r.done) {
+    const top = r.runners.filter(x => /^[123]$/.test(x.pos || "")).sort((a, b) => a.pos - b.pos);
+    tag = `<span class="tag">確定 ${top.map(x => no(x.n, x.w)).join(" ")}</span>`;
+  } else if (!r.runners.length) tag = '<span class="tag">オッズ未取得</span>';
+  else if (!r.near) tag = `<span class="tag">発走${DATA.near_min}分前に判定</span>`;
+  else tag = buys.length ? `<span class="tag buy">買い ${buys.length}点</span>` : '<span class="tag">見送り</span>';
+  const cond = [r.surface && r.dist ? r.surface + r.dist + "m" : "", r.heads ? r.heads + "頭" : "", r.name || ""].filter(Boolean).join("・");
+  const rows = r.runners.map(x => {
+    let buy = "";
+    if (x.pick) buy = `<span class="red">${BET[x.pick.bet]} ${yen(x.pick.stake)}</span>`;
+    else if (r.done && x.sh) buy = `<span class="grey">検証</span>`;
+    return `<tr class="${x.win == null ? "out" : (x.pick ? "buy" : "")}"><td class="c">${no(x.n, x.w)}</td><td class="l">${esc(x.name)}</td>
+      <td>${f1(x.win)}</td><td>${x.lo == null ? "-" : f1(x.lo) + "-" + f1(x.hi)}</td><td>${pct(x.pp)}</td>
+      <td class="${x.ev != null && x.ev >= DATA.ev_min ? (r.near ? "red" : "grey") : ""}">${x.ev == null ? "-" : x.ev.toFixed(2)}</td>
+      <td class="l">${buy}</td><td class="c">${esc(x.pos ?? "")}</td></tr>`;
+  }).join("");
+  const open = openSet.has(r.id) ? " open" : "";
+  return `<details data-id="${r.id}"${open}><summary>
+    <span class="r">${withVenue ? esc(v.venue) + " " : ""}${r.rno}R</span>
+    <span class="r">${esc(r.post || "")}</span>
+    <span class="t">${esc(cond)}${!r.done && left > 0 ? `　あと${left}分` : ""}</span>${tag}</summary>
+    ${rows ? `<div class="wrap"><table><tr><th class="c">馬番</th><th class="l">馬名</th><th>単勝</th><th>複勝</th>
+      <th>複勝圏</th><th>期待値</th><th class="l">買い目</th><th class="c">着順</th></tr>${rows}</table></div>
+      <p class="note" style="padding:6px 14px">${r.ts ? "オッズ " + esc(r.ts.slice(11, 16)) + (r.final ? " 最終" : " 時点") : ""}</p>` : ""}</details>`;
+}
+
+function viewBuys() {
+  const ps = allPicks(), now = ps.filter(p => !p.r.done), old = ps.filter(p => p.r.done);
+  const coming = [];
+  DATA.venues.forEach(v => v.races.forEach(r => { if (!r.done && minsLeft(r.post) > 0) coming.push([v, r]); }));
+  coming.sort((a, b) => (a[1].post || "").padStart(5, "0").localeCompare((b[1].post || "").padStart(5, "0")));
+  let h = `<h2><b>買い</b>投票画面に打ち込む順（場 → レース → 式別 → 馬番 → 金額）</h2>`;
+  h += now.length ? now.map(pickCard).join("") : `<div class="empty">今は買いの馬がいない。判定は発走${DATA.near_min}分前から。</div>`;
+  h += `<h2><b>これから</b>${coming.length}レース</h2>`;
+  h += coming.length ? coming.map(([v, r]) => raceBox(v, r, true)).join("") : `<div class="empty">本日のレースは終了。</div>`;
+  if (old.length) h += `<h2><b>済んだ買い目</b>${old.length}点</h2>` + old.reverse().map(pickCard).join("");
+  h += `<p class="note">期待値 = 複勝圏に入る確率 × 複勝オッズの下限。${DATA.ev_min.toFixed(2)} 以上で「買い」、無ければ「見送り」。
+    オッズは取得時点のもので締切までに動く。金額は1レース ${yen(DATA.race_cap)} までの目安。</p>`;
+  return h;
+}
+
+function viewVenue(v) {
+  return `<h2><b>${esc(v.venue)}</b>${v.races.length}レース</h2>` + v.races.map(r => raceBox(v, r, false)).join("");
+}
+
+const tile = (k, v) => `<div class="tile"><small>${k}</small><b>${v}</b></div>`;
+function viewStats() {
+  const s = DATA.stats, left = Math.max(0, DATA.stage2 - s.stored.flat);
+  let myStake = 0, myRet = 0, myN = 0, myWait = 0;
+  allPicks().forEach(p => {
+    const a = bought[p.id];
+    if (!a) return;
+    if (!p.r.done) { myWait += a; return; }
+    myN++; myStake += a; myRet += a * payout(p.r, p.x.pick.bet, p.x.n) / 100;
+  });
+  const sh = (t, a) => `<h2><b>${t}</b>最終オッズに同じ決まりを当てた場合（${a.races}レース）</h2><div class="tiles">
+    ${tile("買いの点数", a.bets + "点")}${tile("的中", a.hits + "点")}${tile("投資", yen(a.stake))}${tile("払戻", yen(a.ret))}
+    ${tile("回収率", pct(a.rate))}${tile("回収率（一律100円）", pct(a.flat_rate))}</div>`;
+  return `<h2><b>自分で買った分</b>本日（このPCのブラウザに保存）</h2><div class="tiles">
+    ${tile("確定", myN + "点")}${tile("投資", yen(myStake))}${tile("払戻", yen(myRet))}
+    ${tile("回収率", myStake ? pct(myRet / myStake) : "-")}${tile("結果待ち", yen(myWait))}</div>
+    <h2><b>買ったつもり</b>発走前に出した買い目を目安の金額で全部買った場合（通算）</h2><div class="tiles">
+    ${tile("精算済み", s.rec.n + "点")}${tile("的中", s.rec.hits + "点")}${tile("投資", yen(s.rec.stake))}${tile("払戻", yen(s.rec.ret))}
+    ${tile("回収率", pct(s.rec.rate))}${tile("結果待ち", s.pend.n + "点")}</div>
+    ${sh("検証 平地", s.shadow.flat)}${sh("検証 ばんえい", s.shadow.banei)}
+    <p class="note">検証は決まりが効いているかを見る数字。最終オッズは実際には買えない条件で、点数が少ないうちは当てにならない。</p>
+    <h2><b>貯まったデータ</b></h2><div class="tiles">
+    ${tile("平地", s.stored.flat + "レース／" + s.stored.flat_days + "日")}${tile("ばんえい", s.stored.banei + "レース／" + s.stored.banei_days + "日")}
+    ${tile("人気の偏り補正まで", "あと" + left + "レース")}</div>`;
+}
+
+// ---- 画面の状態（読み直しても開いた場所に戻る） ----
+const ss = (k, v) => { try { if (v === undefined) return sessionStorage.getItem(k); sessionStorage.setItem(k, v); } catch (e) { return null; } };
+const openSet = new Set(JSON.parse(ss("open") || "[]"));
+const tabs = [["買い目", viewBuys]].concat(DATA.venues.map(v => [v.venue, () => viewVenue(v)]), [["成績表", viewStats]]);
+const hashTab = /^#t(\d+)$/.exec(location.hash);        // 検査用: #t2 で3番目のタブを開く
+let cur = Math.min(hashTab ? +hashTab[1] : (+ss("tab") || 0), tabs.length - 1);
+function show(i) {
+  cur = i; ss("tab", i);
+  $("#nav").innerHTML = tabs.map((t, k) => `<button class="${k === i ? "on" : ""}" data-i="${k}">${esc(t[0])}</button>`).join("");
+  $("#main").innerHTML = tabs[i][1]();
+}
+function toast(t) { const e = $("#toast"); e.textContent = t; e.classList.add("on"); setTimeout(() => e.classList.remove("on"), 1400); }
+
+$("#nav").addEventListener("click", e => { if (e.target.dataset.i) { show(+e.target.dataset.i); scrollTo(0, 0); } });
+$("#main").addEventListener("toggle", e => {
+  const id = e.target.dataset && e.target.dataset.id;
+  if (!id) return;
+  e.target.open ? openSet.add(id) : openSet.delete(id);
+  ss("open", JSON.stringify([...openSet]));
+}, true);
+$("#main").addEventListener("change", e => {
+  const d = e.target.dataset, id = d.buy || d.amt;
+  if (!id) return;
+  const box = $(`[data-buy="${id}"]`), amt = $(`[data-amt="${id}"]`);
+  if (d.amt && +amt.value > 0) box.checked = true;       // 金額を打ったら「買った」にする
+  if (box.checked && +amt.value > 0) bought[id] = +amt.value; else delete bought[id];
+  saveBought();
+});
+$("#main").addEventListener("click", e => {
+  const t = e.target.dataset.copy;
+  if (!t) return;
+  (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => toast("コピーした"), () => toast(t));
+});
+function reload() { ss("y", scrollY); location.reload(); }
+$("#reload").addEventListener("click", reload);
+// 1分ごとに読み直す。金額を打っている最中は待つ
+setInterval(() => { const a = document.activeElement; if (!(a && a.tagName === "INPUT" && a.type === "number")) reload(); }, 60000);
+
+// データの古さ（スマホ版は GitHub 経由で数分遅れることがある）
+const age = Math.round((Date.now() - new Date(DATA.built.replace(" ", "T"))) / 60000);
+$("#sub").textContent = DATA.date.replace(/(\d{4})(\d\d)(\d\d)/, "$1年$2月$3日") + "　" + DATA.built.slice(11) + " 時点"
+  + (age >= 2 ? `（${age < 120 ? age + "分" : Math.floor(age / 60) + "時間"}前）` : "");
+show(cur);
+scrollTo(0, +ss("y") || 0);
+</script>
+</body>
+
+</html>
