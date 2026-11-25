@@ -90,8 +90,12 @@ tr.out td{color:var(--sub);text-decoration:line-through}
 <script type="module">
 // スマホ版のデータ読み込み（build.py が app.html の /*__DATA__*/ に差し込む。check.py も同じものを Node で試す）
 // 鍵はリンクの #k=… にだけある。GitHub に置くのは暗号文（AES-GCM, 先頭12バイトが iv, 中身は gzip した JSON）だけ。
+// 取り先は2つ。API は push 直後から新しいが、鍵なしだと1時間60回まで（304 も数える）。
+// raw は回数の縛りが無いが、ブランチ名のURLは最大5分ほど古いまま。→ API を先に、だめなら raw。
+const API_URL = "https://api.github.com/repos/kazuse429-eng/keiba/contents/d.bin?ref=data";
 const DATA_URL = "https://raw.githubusercontent.com/kazuse429-eng/keiba/data/d.bin";
 const KEY_NAME = "keiba.k";
+const RELOAD_MS = 120000;     // スマホは2分ごと（API 30回/時）。app.html が見る
 
 function b64urlToBytes(s) {
   s = s.replace(/-/g, "+").replace(/_/g, "/");
@@ -122,9 +126,14 @@ async function loadData() {
   if (!k) stopWith("このページは、送られたリンクから開いてね。");
   let res;
   try {
-    res = await fetch(DATA_URL + "?t=" + Date.now(), {cache: "no-store"});
-  } catch (e) {
-    stopWith("データを取りに行けない（電波を確認してね）。");
+    res = await fetch(API_URL, {cache: "no-cache", headers: {Accept: "application/vnd.github.raw"}});
+  } catch (e) {}
+  if (!res || !res.ok) {
+    try {
+      res = await fetch(DATA_URL + "?t=" + Date.now(), {cache: "no-store"});
+    } catch (e) {
+      stopWith("データを取りに行けない（電波を確認してね）。");
+    }
   }
   if (!res.ok) stopWith("データがまだ無い（" + res.status + "）。");
   try {
@@ -299,8 +308,9 @@ $("#main").addEventListener("click", e => {
 });
 function reload() { ss("y", scrollY); location.reload(); }
 $("#reload").addEventListener("click", reload);
-// 1分ごとに読み直す。金額を打っている最中は待つ
-setInterval(() => { const a = document.activeElement; if (!(a && a.tagName === "INPUT" && a.type === "number")) reload(); }, 60000);
+// 1分ごと（スマホ版は RELOAD_MS）に読み直す。金額を打っている最中は待つ
+setInterval(() => { const a = document.activeElement; if (!(a && a.tagName === "INPUT" && a.type === "number")) reload(); },
+            typeof RELOAD_MS === "number" ? RELOAD_MS : 60000);
 
 // データの古さ（スマホ版は GitHub 経由で数分遅れることがある）
 const age = Math.round((Date.now() - new Date(DATA.built.replace(" ", "T"))) / 60000);
