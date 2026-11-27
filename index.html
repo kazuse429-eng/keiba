@@ -249,7 +249,7 @@ function viewVenue(v) {
 
 const tile = (k, v) => `<div class="tile"><small>${k}</small><b>${v}</b></div>`;
 function viewStats() {
-  const s = DATA.stats, left = Math.max(0, DATA.stage2 - s.stored.flat);
+  const s = DATA.stats;
   let myStake = 0, myRet = 0, myN = 0, myWait = 0;
   allPicks().forEach(p => {
     const a = bought[p.id];
@@ -270,7 +270,7 @@ function viewStats() {
     <p class="note">検証は決まりが効いているかを見る数字。最終オッズは実際には買えない条件で、点数が少ないうちは当てにならない。</p>
     <h2><b>貯まったデータ</b></h2><div class="tiles">
     ${tile("平地", s.stored.flat + "レース／" + s.stored.flat_days + "日")}${tile("ばんえい", s.stored.banei + "レース／" + s.stored.banei_days + "日")}
-    ${tile("人気の偏り補正まで", "あと" + left + "レース")}</div>`;
+    ${tile("三連複オッズ（最終）", (s.stored.trio || 0) + "レース")}</div>`;
 }
 
 // ---- 画面の状態（読み直しても開いた場所に戻る） ----
